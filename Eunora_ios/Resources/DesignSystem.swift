@@ -9,6 +9,15 @@ enum EunoiaColor {
     static let gold = Color(red: 0.76, green: 0.61, blue: 0.31)
     static let deepOcean = Color(red: 0.18, green: 0.35, blue: 0.43)
     static let ink = Color(red: 0.16, green: 0.25, blue: 0.28)
+    static let parchment = Color(red: 0.97, green: 0.91, blue: 0.81)
+    static let wood = Color(red: 0.48, green: 0.29, blue: 0.12)
+    static let coral = Color(red: 0.78, green: 0.42, blue: 0.38)
+}
+
+extension Font {
+    static func story(_ size: CGFloat, weight: Weight = .semibold) -> Font {
+        .system(size: size, weight: weight, design: .serif)
+    }
 }
 
 struct StorybookBackground: View {
@@ -28,5 +37,15 @@ struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.font(.headline).foregroundStyle(.white).frame(maxWidth: .infinity, minHeight: 54)
             .background(EunoiaColor.deepOcean.opacity(configuration.isPressed ? 0.78 : 1), in: Capsule()).scaleEffect(configuration.isPressed ? 0.98 : 1)
+    }
+}
+
+struct ParchmentCard<Content: View>: View {
+    @ViewBuilder var content: Content
+    var body: some View {
+        content.padding(18)
+            .background(EunoiaColor.parchment, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 15).stroke(EunoiaColor.wood.opacity(0.22)))
+            .shadow(color: EunoiaColor.wood.opacity(0.16), radius: 7, y: 4)
     }
 }
