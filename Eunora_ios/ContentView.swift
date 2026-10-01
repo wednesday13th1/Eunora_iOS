@@ -1,17 +1,24 @@
 import SwiftUI
-import Playgrounds
+import SwiftData
 
 struct ContentView: View {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+
     var body: some View {
-        Text("Hello, world!")
-            .padding()
+        Group {
+            if hasCompletedOnboarding {
+                RootTabView()
+            } else {
+                OnboardingView {
+                    withAnimation(.easeInOut(duration: 0.45)) { hasCompletedOnboarding = true }
+                }
+            }
+        }
+        .tint(EunoiaColor.deepOcean)
     }
 }
 
 #Preview {
     ContentView()
-}
-
-#Playground {
-    _ = 1 + 2
+        .modelContainer(for: [VoyageProfile.self, DailyQuest.self, CheckIn.self, LogEntry.self], inMemory: true)
 }
