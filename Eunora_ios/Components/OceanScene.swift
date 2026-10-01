@@ -20,9 +20,14 @@ struct OceanScene: View {
                     .foregroundStyle(.white.opacity(0.72)).offset(x: moving ? proxy.size.width * 0.46 : -proxy.size.width * 0.46, y: -54)
                     .rotationEffect(.degrees(cloudWiggle ? 4 : -2)).onTapGesture { withAnimation(.spring(response: 0.25, dampingFraction: 0.35)) { cloudWiggle.toggle() } }
                     .animation(reduceMotion ? nil : .linear(duration: 24).repeatForever(autoreverses: true), value: moving)
-                Image(systemName: "mountain.2.fill").font(.system(size: 62)).foregroundStyle(EunoiaColor.deepOcean.opacity(0.28)).offset(x: proxy.size.width * 0.32, y: 20)
-                WaveShape(phase: moving ? 0.7 : 0).fill(EunoiaColor.dustyBlue).frame(height: 100).offset(y: 76)
+                ZStack(alignment: .bottom) {
+                    Image(systemName: "mountain.2.fill").font(.system(size: 70)).foregroundStyle(EunoiaColor.deepOcean.opacity(0.32))
+                    Text("KYOTO").font(.system(size: 9, weight: .bold)).tracking(1.2).foregroundStyle(EunoiaColor.deepOcean.opacity(0.65)).offset(y: 15)
+                }.offset(x: proxy.size.width * 0.31, y: 12)
+                WaveShape(phase: moving ? 0.55 : 0).fill(EunoiaColor.mistBlue).frame(height: 112).offset(y: 78)
                     .animation(reduceMotion ? nil : .linear(duration: 5).repeatForever(autoreverses: true), value: moving)
+                WaveShape(phase: moving ? -0.45 : 0.2).fill(EunoiaColor.softSeaBlue).frame(height: 102).offset(y: 96)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 4).repeatForever(autoreverses: true), value: moving)
                 if onBottleTap != nil {
                     ZStack {
                         BottleGlyph().frame(width: 28, height: 60)
@@ -32,14 +37,14 @@ struct OceanScene: View {
                         .offset(x: proxy.size.width * 0.29, y: 55 - bottleLift).onTapGesture { onBottleTap?() }
                         .accessibilityLabel("A sparkling message bottle").accessibilityHint("Tap to pull it from the sea").accessibilityAddTraits(.isButton)
                 }
-                Image(systemName: "sailboat.fill").font(.system(size: 62)).foregroundStyle(EunoiaColor.cream, EunoiaColor.gold)
+                Image(systemName: "sailboat.fill").font(.system(size: min(72, proxy.size.width * 0.20))).foregroundStyle(EunoiaColor.cream, EunoiaColor.gold)
                     .shadow(color: EunoiaColor.ink.opacity(0.18), radius: 4, y: 3)
-                    .rotationEffect(.degrees(boatBounce ? -7 : 3))
+                    .rotationEffect(.degrees(boatBounce ? -2 : 1.5))
                     .offset(x: -proxy.size.width * 0.3 + CGFloat(progress) * proxy.size.width * 0.57, y: moving && !reduceMotion ? 42 : 48)
                     .onTapGesture { UIImpactFeedbackGenerator(style: .soft).impactOccurred(); withAnimation(.spring(response: 0.35, dampingFraction: 0.35)) { boatBounce.toggle() } }
                     .animation(.spring(response: 0.8, dampingFraction: 0.72), value: progress)
                     .animation(reduceMotion ? nil : .easeInOut(duration: 2.2).repeatForever(autoreverses: true), value: moving)
-                WaveShape(phase: moving ? -0.8 : 0.2).fill(EunoiaColor.deepOcean.opacity(0.78)).frame(height: 82).offset(y: 108)
+                WaveShape(phase: moving ? -0.7 : 0.2).fill(EunoiaColor.oceanBlue.opacity(0.9)).frame(height: 88).offset(y: 116)
                     .animation(reduceMotion ? nil : .linear(duration: 6.5).repeatForever(autoreverses: true), value: moving)
                 if let ripplePoint {
                     Circle().stroke(.white.opacity(0.75), lineWidth: 2).frame(width: 54, height: 18).position(ripplePoint).transition(.scale(scale: 0.1).combined(with: .opacity))
@@ -51,7 +56,7 @@ struct OceanScene: View {
                     withAnimation(.easeOut(duration: 0.8)) { ripplePoint = nil }
                 })
         }
-        .frame(height: 250).accessibilityElement(children: .ignore).accessibilityLabel("A small sailboat traveling across a calm sea")
+        .frame(height: 280).accessibilityElement(children: .ignore).accessibilityLabel("A small sailboat traveling across a calm sea toward Kyoto")
         .onAppear { moving = true }
     }
 

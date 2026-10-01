@@ -138,36 +138,50 @@ struct CabinView: View {
     @State private var selectedHat = "sailorcap.fill"
     let items = [("sailorcap.fill", 0), ("partyhat.fill", 3), ("crown.fill", 7)]
     @State private var lampOn = true
-    @State private var curtainOpen = false
+    @State private var mapOpen = false
     @State private var plantWiggle = false
+    @State private var bottlesLifted = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
-        ZStack { LinearGradient(colors: [lampOn ? EunoiaColor.sand : EunoiaColor.deepOcean.opacity(0.8), EunoiaColor.cream], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea(); ScrollView { VStack(spacing: 24) {
-            Text("Your quiet place at sea").font(.story(21)).foregroundStyle(EunoiaColor.ink)
-            ZStack {
-                RoundedRectangle(cornerRadius: 28).fill(EunoiaColor.wood.opacity(0.32)).frame(height: 330)
-                Circle().fill(EunoiaColor.sky).frame(width: 120).overlay(Image(systemName: "water.waves").foregroundStyle(EunoiaColor.deepOcean)).overlay(Rectangle().fill(EunoiaColor.wood).frame(width: 5)).offset(x: 90, y: -72)
-                Image(systemName: curtainOpen ? "curtains.open" : "curtains.closed").font(.system(size: 82)).foregroundStyle(EunoiaColor.coral.opacity(0.8)).offset(x: 90, y: -72).onTapGesture { withAnimation(.spring) { curtainOpen.toggle() } }
-                NavigationLink(destination: VoyageMapView()) { Image(systemName: "map.fill").font(.system(size: 56)).foregroundStyle(EunoiaColor.parchment, EunoiaColor.coral) }.offset(x: -95, y: -75)
-                Image(systemName: "lamp.table.fill").font(.system(size: 54)).foregroundStyle(lampOn ? EunoiaColor.gold : .secondary).offset(x: 105, y: 95).onTapGesture { withAnimation { lampOn.toggle() } }
-                Image(systemName: "leaf.fill").font(.system(size: 57)).foregroundStyle(.green.opacity(0.65)).rotationEffect(.degrees(plantWiggle ? 9 : -4)).offset(x: -110, y: 95).onTapGesture { withAnimation(.spring(response: 0.3, dampingFraction: 0.35)) { plantWiggle.toggle() } }
-                VStack { Image(systemName: selectedHat).font(.system(size: 38)).foregroundStyle(EunoiaColor.gold); Image(systemName: "person.crop.circle.fill").font(.system(size: 78)).foregroundStyle(EunoiaColor.dustyBlue) }.onTapGesture(count: 2) { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
-                NavigationLink(destination: BottleShelfView()) { VStack(spacing: 3) { HStack(spacing: 6) { ForEach(0..<3, id: \.self) { _ in BottleGlyph().frame(width: 20, height: 43) } }; Text("Bottles").font(.caption2.bold()).foregroundStyle(EunoiaColor.cream) } }.offset(x: 0, y: 116)
-            }.padding(.horizontal)
-            VStack(alignment: .leading, spacing: 12) { Text("Wardrobe").font(.title2.bold()); HStack { ForEach(items, id: \.0) { item in
+        ZStack { StorybookBackground(); ScrollView { LazyVStack(alignment: .leading, spacing: EunoiaSpacing.xl) {
+            VStack(alignment: .leading, spacing: EunoiaSpacing.lg) { Text("Cabin").font(.eunoiaScreenTitle).foregroundStyle(EunoiaColor.primaryText); Text("Your quiet place at sea").font(.story(30)).foregroundStyle(EunoiaColor.deepOcean).frame(maxWidth: .infinity) }
+            GeometryReader { proxy in
+                let w = proxy.size.width
+                ZStack {
+                    RoundedRectangle(cornerRadius: EunoiaRadius.hero).fill(EunoiaColor.warmSand.opacity(lampOn ? 0.62 : 0.42))
+                    Rectangle().fill(EunoiaColor.wood.opacity(0.18)).frame(height: w * 0.29).frame(maxHeight: .infinity, alignment: .bottom).clipShape(RoundedRectangle(cornerRadius: EunoiaRadius.hero))
+                    Circle().fill(EunoiaColor.mistBlue).overlay(WaveShape(phase: plantWiggle ? 0.5 : 0).fill(EunoiaColor.oceanBlue.opacity(0.7)).offset(y: 35)).overlay(Circle().stroke(EunoiaColor.deepOcean, lineWidth: 8)).frame(width: w * 0.31).offset(x: w * 0.27, y: -w * 0.22)
+                    Button { withAnimation(EunoiaMotion.collectible) { mapOpen.toggle() } } label: { Image(systemName: "map.fill").font(.system(size: w * 0.14)).foregroundStyle(EunoiaColor.lightSand, EunoiaColor.coral).rotationEffect(.degrees(mapOpen ? 0 : -8)) }.offset(x: -w * 0.31, y: -w * 0.25)
+                    VStack(spacing: 0) { Image(systemName: selectedHat).font(.system(size: 36)).foregroundStyle(EunoiaColor.gold); Image(systemName: "person.crop.circle.fill").font(.system(size: 82)).foregroundStyle(EunoiaColor.softSeaBlue) }.offset(y: 12)
+                    Image(systemName: "leaf.fill").font(.system(size: 58)).foregroundStyle(EunoiaColor.leaf).rotationEffect(.degrees(plantWiggle ? 7 : -3)).offset(x: -w * 0.33, y: w * 0.31).onTapGesture { withAnimation(EunoiaMotion.collectible) { plantWiggle.toggle() } }
+                    Image(systemName: "lamp.table.fill").font(.system(size: 55)).foregroundStyle(lampOn ? EunoiaColor.gold : EunoiaColor.secondaryText).shadow(color: lampOn ? EunoiaColor.gold.opacity(0.5) : .clear, radius: 20).offset(x: w * 0.34, y: w * 0.31).onTapGesture { withAnimation(EunoiaMotion.normal) { lampOn.toggle() } }
+                    NavigationLink(destination: BottleShelfView()) { HStack(spacing: 8) { ForEach(0..<3, id: \.self) { _ in BottleGlyph().frame(width: 26, height: 55) } }.padding(.horizontal, 14).padding(.top, 8).background(EunoiaColor.wood.opacity(0.7), in: RoundedRectangle(cornerRadius: 8)) }
+                        .offset(y: w * 0.34 - (bottlesLifted ? 9 : 0)).shadow(color: bottlesLifted ? EunoiaColor.gold.opacity(0.45) : .clear, radius: 12).simultaneousGesture(TapGesture().onEnded { withAnimation(EunoiaMotion.collectible) { bottlesLifted = true } })
+                }.onAppear { guard !reduceMotion else { return }; withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) { plantWiggle = true } }
+            }.aspectRatio(1, contentMode: .fit)
+            VStack(alignment: .leading, spacing: EunoiaSpacing.md) { Text("Wardrobe").font(.eunoiaSectionTitle).foregroundStyle(EunoiaColor.primaryText); LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) { ForEach(items, id: \.0) { item in
                 let unlocked = (profiles.first?.anchors ?? 0) >= item.1
-                Button { if unlocked { selectedHat = item.0 } } label: { VStack { Image(systemName: unlocked ? item.0 : "lock.fill").font(.title2); Text(item.1 == 0 ? "Aboard" : "\(item.1) ⚓").font(.caption) }.frame(maxWidth: .infinity, minHeight: 80).background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 18)) }.foregroundStyle(unlocked ? EunoiaColor.deepOcean : .secondary).disabled(!unlocked)
+                Button { if unlocked { withAnimation(EunoiaMotion.collectible) { selectedHat = item.0 } } } label: { VStack(spacing: 8) { Image(systemName: unlocked ? item.0 : "lock.fill").font(.title2); Text(item.1 == 0 ? "Aboard" : "\(item.1) ⚓").font(.caption.weight(.semibold)); if selectedHat == item.0 { Text("Equipped").font(.system(size: 10, weight: .bold)).padding(.horizontal, 6).padding(.vertical, 2).background(EunoiaColor.gold.opacity(0.2), in: Capsule()) } }.frame(maxWidth: .infinity, minHeight: 106).background(EunoiaColor.card, in: RoundedRectangle(cornerRadius: EunoiaRadius.card)).overlay(RoundedRectangle(cornerRadius: EunoiaRadius.card).stroke(selectedHat == item.0 ? EunoiaColor.gold : .clear, lineWidth: 1.5)) }.foregroundStyle(unlocked ? EunoiaColor.deepOcean : EunoiaColor.secondaryText).opacity(unlocked ? 1 : 0.45).disabled(!unlocked)
             } } }
-        }.padding() } }.navigationTitle("Cabin")
+        }.padding(.horizontal, EunoiaSpacing.screen).padding(.top, EunoiaSpacing.md) } }.toolbar(.hidden, for: .navigationBar)
     }
 }
 
 struct YouView: View {
     var body: some View {
-        ZStack { StorybookBackground(); List {
-            Section { NavigationLink { CaptainLogView() } label: { Label("Captain’s Log", systemImage: "book.closed.fill") }; NavigationLink { BottleShelfView() } label: { Label("My Bottles", systemImage: "waterbottle.fill") } }
-            Section("Support") { NavigationLink { LighthouseView() } label: { Label("Lighthouse", systemImage: "light.beacon.max.fill") } }
-            Section { Text("Eunoia is designed to support your journey, but it is not a substitute for professional medical or mental-health care.").font(.footnote).foregroundStyle(.secondary) }
-        }.scrollContentBackground(.hidden) }.navigationTitle("You")
+        ZStack { StorybookBackground(); ScrollView { LazyVStack(alignment: .leading, spacing: EunoiaSpacing.xl) {
+            Text("You").font(.eunoiaScreenTitle).foregroundStyle(EunoiaColor.primaryText)
+            EditorialHeading(text: "Your own corner of the voyage", size: 30)
+            VStack(spacing: EunoiaSpacing.md) {
+                destinationRow("Captain’s Log", icon: "book.closed.fill", subtitle: "A private page for today") { CaptainLogView() }
+                destinationRow("My Bottles", icon: "waterbottle.fill", subtitle: "Messages gathered at sea") { BottleShelfView() }
+                destinationRow("Lighthouse", icon: "light.beacon.max.fill", subtitle: "Calm support when you need it") { LighthouseView() }
+            }
+            Text("Eunoia is designed to support your journey, but it is not a substitute for professional medical or mental-health care.").font(.footnote).foregroundStyle(EunoiaColor.secondaryText).lineSpacing(3)
+        }.padding(.horizontal, EunoiaSpacing.screen).padding(.top, EunoiaSpacing.lg) } }.toolbar(.hidden, for: .navigationBar)
+    }
+    private func destinationRow<Destination: View>(_ title: String, icon: String, subtitle: String, @ViewBuilder destination: () -> Destination) -> some View {
+        NavigationLink(destination: destination()) { EunoiaCard(radius: EunoiaRadius.largeCard) { HStack(spacing: EunoiaSpacing.md) { Image(systemName: icon).font(.system(size: 26)).foregroundStyle(EunoiaColor.gold).frame(width: 44, height: 44).background(EunoiaColor.lightSand, in: Circle()); VStack(alignment: .leading, spacing: 4) { Text(title).font(.system(size: 20, weight: .semibold)); Text(subtitle).font(.system(size: 14)).foregroundStyle(EunoiaColor.secondaryText) }; Spacer(); Image(systemName: "chevron.right").foregroundStyle(EunoiaColor.secondaryText) } } }.buttonStyle(.plain).foregroundStyle(EunoiaColor.primaryText)
     }
 }
 
@@ -208,28 +222,36 @@ struct CaptainLogView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \LogEntry.createdAt, order: .reverse) private var entries: [LogEntry]
     @State private var difficult = ""; @State private var helped = ""; @State private var proud = ""
+    @State private var savedMessage = false
     var body: some View {
-        ZStack { StorybookBackground(); ScrollView { VStack(alignment: .leading, spacing: 16) {
-            Text("Everything here is optional and stays on this device.").font(.subheadline).foregroundStyle(.secondary)
+        ZStack { StorybookBackground(); ScrollView { LazyVStack(alignment: .leading, spacing: 26) {
+            HStack { EunoiaBackButton(); Spacer() }
+            Text("Captain’s Log").font(.eunoiaScreenTitle).foregroundStyle(EunoiaColor.primaryText)
+            HStack { Image(systemName: "safari.fill"); Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())) }.font(.system(size: 13, weight: .semibold)).foregroundStyle(EunoiaColor.gold).textCase(.uppercase)
+            Text("Everything here is optional and stays on this device.").font(.system(size: 16)).foregroundStyle(EunoiaColor.secondaryText)
             reflectionField("Something that felt difficult today", text: $difficult)
             reflectionField("Something that helped", text: $helped)
             reflectionField("Something I’m proud of", text: $proud)
-            Button("Save today’s reflection") { guard !difficult.isEmpty || !helped.isEmpty || !proud.isEmpty else { return }; context.insert(LogEntry(difficult: difficult, helped: helped, proud: proud)); difficult = ""; helped = ""; proud = "" }.buttonStyle(PrimaryButtonStyle())
-            if !entries.isEmpty { Text("Earlier pages").font(.title2.bold()).padding(.top, 16) }
+            Button("Save today’s reflection") { guard !difficult.isEmpty || !helped.isEmpty || !proud.isEmpty else { return }; context.insert(LogEntry(difficult: difficult, helped: helped, proud: proud)); difficult = ""; helped = ""; proud = ""; UINotificationFeedbackGenerator().notificationOccurred(.success); withAnimation(EunoiaMotion.collectible) { savedMessage = true }; Task { @MainActor in try? await Task.sleep(for: .seconds(2)); withAnimation { savedMessage = false } } }.buttonStyle(PrimaryButtonStyle())
+            if savedMessage { Label("Log saved for today.", systemImage: "anchor.circle.fill").font(.system(size: 16, weight: .semibold)).foregroundStyle(EunoiaColor.gold).frame(maxWidth: .infinity).transition(.scale.combined(with: .opacity)) }
+            if !entries.isEmpty { Text("Earlier pages").font(.eunoiaSectionTitle).padding(.top, 16) }
             ForEach(entries) { entry in SoftCard { VStack(alignment: .leading, spacing: 8) { Text(entry.createdAt.formatted(date: .abbreviated, time: .omitted)).font(.caption.weight(.semibold)).foregroundStyle(EunoiaColor.gold); if !entry.difficult.isEmpty { Text(entry.difficult) }; if !entry.helped.isEmpty { Text(entry.helped) }; if !entry.proud.isEmpty { Text(entry.proud) } } } }
-        }.padding() } }.navigationTitle("Captain’s Log")
+        }.padding(.horizontal, EunoiaSpacing.screen).padding(.vertical, EunoiaSpacing.md) } }.toolbar(.hidden, for: .navigationBar)
     }
-    private func reflectionField(_ title: String, text: Binding<String>) -> some View { VStack(alignment: .leading, spacing: 7) { Text(title).font(.headline); TextField("Write as little or as much as you like…", text: text, axis: .vertical).lineLimit(3...6).padding().background(.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 16)) } }
+    private func reflectionField(_ title: String, text: Binding<String>) -> some View { VStack(alignment: .leading, spacing: 12) { Text(title).font(.system(size: 20, weight: .semibold)).foregroundStyle(EunoiaColor.primaryText); TextField("Write as little or as much as you like…", text: text, axis: .vertical).font(.system(size: 17)).lineLimit(4...7).padding(18).frame(minHeight: 138, alignment: .top).background(EunoiaColor.card.opacity(0.92), in: RoundedRectangle(cornerRadius: 21)).overlay(RoundedRectangle(cornerRadius: 21).stroke(EunoiaColor.warmSand.opacity(0.35))) } }
 }
 
 struct LighthouseView: View {
     var body: some View {
-        ZStack { StorybookBackground(); ScrollView { VStack(alignment: .leading, spacing: 18) {
-            HStack { Spacer(); ZStack { Circle().fill(EunoiaColor.gold.opacity(0.16)).frame(width: 150, height: 150); Image(systemName: "light.beacon.max.fill").font(.system(size: 72)).foregroundStyle(EunoiaColor.gold, EunoiaColor.deepOcean) }; Spacer() }
-            Text("You don’t have to navigate alone.").font(.title.bold()).foregroundStyle(EunoiaColor.ink)
-            SoftCard { VStack(alignment: .leading, spacing: 8) { Label("Find support", systemImage: "person.2.fill").font(.headline); Text("Consider reaching out to someone you trust, a family member, counselor, doctor, or an established eating-disorder support organization.").foregroundStyle(.secondary) } }
-            SoftCard { VStack(alignment: .leading, spacing: 8) { Label("Need help now?", systemImage: "phone.fill").font(.headline).foregroundStyle(.red); Text("If you may be in immediate danger or unable to keep yourself safe, contact your local emergency service now. Crisis resources vary by country.").foregroundStyle(.secondary) } }
-            Text("Eunoia is designed to support your journey, but it is not a substitute for professional medical or mental-health care.").font(.footnote).foregroundStyle(.secondary)
-        }.padding() } }.navigationTitle("Lighthouse")
+        ZStack { StorybookBackground(); ScrollView { LazyVStack(alignment: .leading, spacing: EunoiaSpacing.lg) {
+            EunoiaBackButton()
+            Text("Lighthouse").font(.eunoiaScreenTitle).foregroundStyle(EunoiaColor.primaryText)
+            HStack { Spacer(); ZStack { Circle().fill(EunoiaColor.gold.opacity(0.14)).frame(width: 158, height: 158); Image(systemName: "light.beacon.max.fill").font(.system(size: 76)).foregroundStyle(EunoiaColor.gold, EunoiaColor.deepOcean) }; Spacer() }
+            Text("You don’t have to navigate alone.").font(.story(32)).foregroundStyle(EunoiaColor.deepOcean).frame(maxWidth: 320, alignment: .leading)
+            supportCard(title: "Find support", icon: "person.2.fill", emergency: false, body: "Consider reaching out to someone you trust, a family member, counselor, doctor, or an established eating-disorder support organization.")
+            supportCard(title: "Need help now?", icon: "phone.fill", emergency: true, body: "If you may be in immediate danger or unable to keep yourself safe, contact your local emergency service now. Crisis resources vary by country.")
+            Text("Eunoia is designed to support your journey, but it is not a substitute for professional medical or mental-health care.").font(.footnote).foregroundStyle(EunoiaColor.secondaryText).padding(.bottom, EunoiaSpacing.lg)
+        }.padding(.horizontal, EunoiaSpacing.screen).padding(.top, EunoiaSpacing.md) } }.toolbar(.hidden, for: .navigationBar)
     }
+    private func supportCard(title: String, icon: String, emergency: Bool, body: String) -> some View { EunoiaCard(radius: 23, tint: EunoiaColor.card.opacity(0.78), padding: 21) { VStack(alignment: .leading, spacing: 12) { Label(title, systemImage: icon).font(.system(size: 20, weight: .semibold)).foregroundStyle(emergency ? Color.red : EunoiaColor.deepOcean); Text(body).font(.system(size: 16)).foregroundStyle(EunoiaColor.primaryText).lineSpacing(4) } } }
 }

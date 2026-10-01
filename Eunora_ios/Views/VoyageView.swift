@@ -24,7 +24,7 @@ struct VoyageView: View {
             StorybookBackground()
             ScrollViewReader { reader in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
+                    LazyVStack(alignment: .leading, spacing: EunoiaSpacing.lg) {
                         header
                         ZStack {
                             OceanScene(progress: profile?.distance ?? 0.12, weather: weather) {
@@ -40,7 +40,7 @@ struct VoyageView: View {
                         voyageStatus
                         if weather == nil { checkInPrompt }
                         questSection
-                    }.padding(.horizontal, 18).padding(.bottom, 30)
+                    }.padding(.horizontal, EunoiaSpacing.screen).padding(.bottom, EunoiaSpacing.xl)
                 }
                 .onChange(of: oceanSurge) { _, isSailing in
                     if isSailing { withAnimation(.spring(response: 0.75, dampingFraction: 0.82)) { reader.scrollTo("ocean", anchor: .center) } }
@@ -68,27 +68,27 @@ struct VoyageView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top) {
+        HStack(alignment: .top, spacing: EunoiaSpacing.md) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(Date.now.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                Text("Good \(timeOfDay), Sailor.").font(.story(25)).foregroundStyle(EunoiaColor.ink)
-                Text("You don’t have to travel far today.").font(.subheadline).foregroundStyle(.secondary)
+                Text("Good \(timeOfDay), Sailor.").font(.story(30)).foregroundStyle(EunoiaColor.deepOcean)
+                Text("You don’t have to travel far today.").font(.system(size: 16)).foregroundStyle(EunoiaColor.secondaryText)
             }
             Spacer()
             Label("\(profile?.anchors ?? 0)", systemImage: "anchor").font(.headline).foregroundStyle(EunoiaColor.gold).padding(10).background(.white.opacity(0.7), in: Capsule())
-        }.padding(.top, 12)
+        }.padding(.top, EunoiaSpacing.md)
     }
 
     private var voyageStatus: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("SAILING TO").font(.caption2.weight(.bold)).tracking(1.5).foregroundStyle(.secondary)
-                Text(profile?.destination ?? "Kyoto").font(.title3.bold()).foregroundStyle(EunoiaColor.ink)
+                Text(profile?.destination ?? "Kyoto").font(.system(size: 28, weight: .bold)).foregroundStyle(EunoiaColor.primaryText)
             }
             Spacer()
             VStack(alignment: .trailing) {
                 Text("Today’s distance").font(.caption).foregroundStyle(.secondary)
-                Text("\(quests.filter(\.isCompleted).count) gentle steps").font(.subheadline.weight(.semibold)).foregroundStyle(EunoiaColor.deepOcean)
+                Text("\(quests.filter(\.isCompleted).count) gentle steps").font(.system(size: 19, weight: .semibold)).foregroundStyle(EunoiaColor.deepOcean)
             }
         }
     }
@@ -104,8 +104,8 @@ struct VoyageView: View {
     }
 
     private var questSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Captain’s Board").font(.story(25)).foregroundStyle(EunoiaColor.ink)
+        VStack(alignment: .leading, spacing: EunoiaSpacing.md) {
+            EditorialHeading(text: "Captain’s Board", size: 32).padding(.top, EunoiaSpacing.xs)
             ForEach(quests) { quest in QuestCard(quest: quest) { complete(quest) } onSkip: { withAnimation { quest.isSkipped = true } } }
         }
     }
@@ -150,17 +150,17 @@ struct QuestCard: View {
     @State private var stamp = false
     var body: some View {
         ParchmentCard { HStack(spacing: 14) {
-            Image(systemName: quest.isCompleted ? "checkmark.circle.fill" : quest.symbol).font(.title2).foregroundStyle(quest.isCompleted ? EunoiaColor.gold : EunoiaColor.deepOcean).frame(width: 34)
+            Image(systemName: quest.isCompleted ? "checkmark.circle.fill" : quest.symbol).font(.system(size: quest.isCompleted ? 44 : 28)).foregroundStyle(quest.isCompleted ? EunoiaColor.gold : EunoiaColor.deepOcean).frame(width: 48)
             VStack(alignment: .leading, spacing: 5) {
-                Text(quest.title).font(.body.weight(.medium)).foregroundStyle(EunoiaColor.ink)
+                Text(quest.title).font(.system(size: 18, weight: .semibold)).foregroundStyle(EunoiaColor.primaryText)
                 if !quest.isCompleted && !quest.isSkipped { Button("Not for me today", action: onSkip).font(.caption).foregroundStyle(.secondary) }
                 else if quest.isSkipped { Text("Resting here for today — no penalty.").font(.caption).foregroundStyle(.secondary) }
-                else { Text("Anchor earned").font(.caption.weight(.semibold)).foregroundStyle(EunoiaColor.gold) }
+                else { Text("Anchor earned").font(.system(size: 14, weight: .semibold)).foregroundStyle(EunoiaColor.gold) }
             }
             Spacer()
             if !quest.isSkipped { Button { withAnimation(.spring(response: 0.28, dampingFraction: 0.48)) { stamp = true }; onComplete() } label: {
                 Image(systemName: "anchor.circle.fill").font(.system(size: 38)).foregroundStyle(quest.isCompleted ? EunoiaColor.gold : EunoiaColor.deepOcean.opacity(0.45)).scaleEffect(stamp ? 1 : 0.86)
             }.disabled(quest.isCompleted).accessibilityLabel(quest.isCompleted ? "Completed" : "Stamp quest complete") }
-        }}.rotationEffect(.degrees(quest.id.hashValue.isMultiple(of: 2) ? 0.7 : -0.7)).opacity(quest.isSkipped ? 0.62 : 1)
+        }}.frame(minHeight: 104).opacity(quest.isSkipped ? 0.62 : 1)
     }
 }
