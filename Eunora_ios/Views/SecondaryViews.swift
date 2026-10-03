@@ -186,35 +186,359 @@ struct YouView: View {
 }
 
 struct BottleShelfView: View {
-    @AppStorage("savedBottle") private var saved = false
-    @State private var selected = false
-    @State private var shaking = false
+    fileprivate enum Phase: Equatable {
+        case idle
+        case pressingCork
+        case pullingCork
+        case bottleReaction
+        case revealingLetter
+        case liftingLetter
+        case openingLetter
+        case opened
+        case closing
+    }
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var phase: Phase = .idle
+    @State private var sceneStarted = false
+    @State private var hintPulse = false
+    @State private var particlesVisible = false
+    @State private var corkPressScale: CGFloat = 1
+    @State private var corkPullOffset: CGFloat = 0
+    @State private var corkPullRotation: Double = 0
+    @State private var animationTask: Task<Void, Never>?
+
     var body: some View {
-        ZStack {
-            LinearGradient(colors: [EunoiaColor.sand, EunoiaColor.cream], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
-            VStack(spacing: 18) {
-                Text("My Bottles").font(.story(32)).foregroundStyle(EunoiaColor.ink)
-                Text(saved ? "Treasures gathered along your voyage" : "Your first sea treasure will wait here.").foregroundStyle(.secondary)
-                TabView {
-                    ForEach(0..<3, id: \.self) { shelf in
-                        ZStack(alignment: .bottom) {
-                            RoundedRectangle(cornerRadius: 12).fill(EunoiaColor.wood).frame(height: 24)
-                            if saved && shelf == 0 {
-                                BottleGlyph(tint: EunoiaColor.dustyBlue).frame(width: 64, height: 132)
-                                    .rotationEffect(.degrees(shaking ? 6 : 0)).scaleEffect(selected ? 1.14 : 1)
-                                    .onTapGesture { withAnimation(.spring) { selected.toggle() } }
-                                    .onLongPressGesture { withAnimation(.spring(response: 0.18, dampingFraction: 0.25)) { shaking.toggle() } }
-                                    .accessibilityLabel("Saved message bottle").accessibilityHint("Tap to read its message")
-                            } else { Text("A quiet shelf").font(.caption).foregroundStyle(EunoiaColor.cream).padding(.bottom, 7) }
-                        }.padding(.horizontal, 30)
+        GeometryReader { proxy in
+            ZStack {
+                LettersAtmosphere(isMoving: sceneStarted && !reduceMotion)
+
+                VStack(spacing: 7) {
+                    Text("LETTERS").font(.system(size: 12, weight: .semibold)).tracking(3.4)
+                    Text("Letters washed ashore").font(.story(30)).foregroundStyle(EunoiaColor.deepOcean)
+                    Text("Messages carried across the sea,\nwaiting to be discovered.")
+                        .font(.system(size: 15)).foregroundStyle(EunoiaColor.secondaryText)
+                        .multilineTextAlignment(.center).lineSpacing(3)
+                    Spacer()
+                }
+                .foregroundStyle(EunoiaColor.deepOcean.opacity(0.75))
+                .padding(.top, 20)
+                .opacity(isReading ? 0.48 : 1)
+
+                BottleDiscoveryScene(
+                    phase: phase,
+                    animateIdle: sceneStarted && !reduceMotion,
+                    hintPulse: hintPulse,
+                    particlesVisible: particlesVisible,
+                    corkPressScale: corkPressScale,
+                    corkPullOffset: corkPullOffset,
+                    corkPullRotation: corkPullRotation,
+                    onCorkTap: openLetter
+                )
+                .frame(width: min(proxy.size.width, 430), height: min(500, proxy.size.height * 0.68))
+                .position(x: proxy.size.width / 2, y: proxy.size.height * 0.60)
+                .blur(radius: isReading ? 3.5 : 0)
+                .opacity(isReading ? 0.62 : 1)
+                .allowsHitTesting(phase == .idle)
+
+                if showsPaper {
+                    FloatingLetter(phase: phase, close: closeLetter)
+                        .frame(maxWidth: min(430, proxy.size.width - 28), maxHeight: proxy.size.height - 42)
+                        .position(x: proxy.size.width / 2, y: proxy.size.height * 0.49)
+                        .offset(y: phase == .liftingLetter ? proxy.size.height * 0.11 - 218 : 0)
+                        .transition(.identity)
+                        .zIndex(4)
+                }
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            sceneStarted = true
+            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) { hintPulse = true }
+        }
+        .onDisappear { animationTask?.cancel() }
+    }
+
+    private var showsPaper: Bool {
+        switch phase { case .liftingLetter, .openingLetter, .opened, .closing: true; default: false }
+    }
+
+    private var isReading: Bool {
+        switch phase { case .openingLetter, .opened, .closing: true; default: false }
+    }
+
+    private func openLetter() {
+        guard phase == .idle else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if reduceMotion {
+            withAnimation(.easeOut(duration: 0.14)) { phase = .pullingCork; corkPullOffset = -72 }
+            animationTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(120))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.24)) { phase = .opened }
+                UISelectionFeedbackGenerator().selectionChanged()
+            }
+            return
+        }
+        phase = .pressingCork
+        withAnimation(.easeInOut(duration: 0.075)) { corkPressScale = 0.96 }
+        animationTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(75))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.075)) { corkPressScale = 1 }
+            try? await Task.sleep(for: .milliseconds(75))
+            guard !Task.isCancelled else { return }
+
+            phase = .pullingCork
+            withAnimation(.easeInOut(duration: 0.12)) {
+                corkPullOffset = -13
+                corkPullRotation = 3.5
+            }
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeIn(duration: 0.11)) {
+                corkPullOffset = -34
+                corkPullRotation = -2.8
+            }
+            try? await Task.sleep(for: .milliseconds(110))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.17)) {
+                corkPullOffset = -91
+                corkPullRotation = 5
+            }
+            try? await Task.sleep(for: .milliseconds(170))
+            guard !Task.isCancelled else { return }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            particlesVisible = true
+            withAnimation(.easeOut(duration: 0.12)) { phase = .bottleReaction }
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.timingCurve(0.36, 0, 0.2, 1, duration: 0.70)) { phase = .revealingLetter }
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled else { return }
+            phase = .liftingLetter
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.timingCurve(0.22, 0.72, 0.24, 1, duration: 0.30)) { phase = .openingLetter }
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.30)) { phase = .opened }
+            particlesVisible = false
+            UISelectionFeedbackGenerator().selectionChanged()
+        }
+    }
+
+    private func closeLetter() {
+        guard phase == .opened else { return }
+        withAnimation(.easeInOut(duration: reduceMotion ? 0.16 : 0.26)) { phase = .closing }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 170 : 280))
+            phase = .idle
+            corkPressScale = 1
+            corkPullOffset = 0
+            corkPullRotation = 0
+        }
+    }
+}
+
+private struct LettersAtmosphere: View {
+    let isMoving: Bool
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            LinearGradient(colors: [Color(hex: 0xEFF9FA), EunoiaColor.mistBlue, Color(hex: 0xD8EBEE)], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
+            Circle().fill(.white.opacity(0.22)).frame(width: 290, height: 150).blur(radius: 42).offset(x: isMoving ? 90 : -70, y: -220)
+                .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: isMoving)
+            WaveShape(phase: isMoving ? 0.7 : -0.25).fill(EunoiaColor.deepOcean.opacity(0.045)).frame(height: 155).blur(radius: 5).offset(y: 28)
+                .animation(.linear(duration: 7.4).repeatForever(autoreverses: true), value: isMoving)
+            WaveShape(phase: isMoving ? -0.5 : 0.35).fill(.white.opacity(0.15)).frame(height: 115).blur(radius: 7).offset(y: 38)
+                .animation(.easeInOut(duration: 5.8).repeatForever(autoreverses: true), value: isMoving)
+        }
+    }
+}
+
+private struct BottleDiscoveryScene: View {
+    let phase: BottleShelfView.Phase
+    let animateIdle: Bool
+    let hintPulse: Bool
+    let particlesVisible: Bool
+    let corkPressScale: CGFloat
+    let corkPullOffset: CGFloat
+    let corkPullRotation: Double
+    let onCorkTap: () -> Void
+
+    private var isPressing: Bool { phase == .pressingCork }
+    private var corkIsFree: Bool {
+        switch phase { case .bottleReaction, .revealingLetter, .liftingLetter, .openingLetter, .opened, .closing: true; default: false }
+    }
+    private var letterIsEmerging: Bool { phase == .revealingLetter }
+    private var keepsInternalPaper: Bool { phase == .idle || phase == .pressingCork || phase == .pullingCork || phase == .bottleReaction }
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 60, paused: !animateIdle)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            let float = animateIdle ? CGFloat(sin(t * .pi * 2 / 4.8) * 4) : 0
+            let drift = animateIdle ? CGFloat(sin(t * .pi * 2 / 7.4) * 1.5) : 0
+            let tilt = animateIdle ? CGFloat(sin(t * .pi * 2 / 6.2) * 0.72) : 0
+            GeometryReader { proxy in
+                let centerY = proxy.size.height / 2
+                let mouthY = centerY - 135
+                ZStack {
+                    Capsule().fill(EunoiaColor.deepOcean.opacity(0.11)).frame(width: 154, height: 17).blur(radius: 7)
+                        .scaleEffect(x: 1 - abs(float) * 0.009).position(x: proxy.size.width / 2, y: centerY + 149)
+
+                    if phase == .bottleReaction || letterIsEmerging {
+                        RolledPaper()
+                            .frame(width: 76, height: 166)
+                            .scaleEffect(letterIsEmerging ? 1 : 0.92, anchor: .bottom)
+                            .rotationEffect(.degrees(letterIsEmerging ? 2 : -1.5))
+                            .opacity(letterIsEmerging ? 1 : 0)
+                            .position(
+                                x: proxy.size.width / 2 + (letterIsEmerging ? 0 : -2),
+                                y: letterIsEmerging ? mouthY - 83 : mouthY + 78
+                            )
+                            .mask(alignment: .top) {
+                                Rectangle().frame(height: max(0, mouthY + 2))
+                            }
+                            .zIndex(1)
                     }
-                }.tabViewStyle(.page(indexDisplayMode: .always)).frame(height: 230)
-                if selected {
-                    ParchmentCard { Text("“Some days, moving forward means sailing. Other days, it means staying afloat. Both count.”").font(.story(20, weight: .regular)).multilineTextAlignment(.center).foregroundStyle(EunoiaColor.ink) }.padding(.horizontal).transition(.move(edge: .bottom).combined(with: .opacity))
-                } else if saved { Text("Tap the bottle to read • Hold it to make it wobble").font(.caption).foregroundStyle(.secondary) }
-                Spacer()
-            }.padding(.top, 20)
-        }.navigationBarTitleDisplayMode(.inline)
+
+                    PremiumBottle(paperVisible: keepsInternalPaper)
+                        .frame(width: 136, height: 270)
+                        .rotationEffect(.degrees(tilt + (phase == .bottleReaction ? -1.2 : 0)))
+                        .scaleEffect(x: phase == .bottleReaction ? 1.012 : 1, y: isPressing ? 0.997 : phase == .bottleReaction ? 0.992 : 1)
+                        .offset(x: drift + (phase == .bottleReaction ? 2 : 0), y: float + (isPressing ? 3 : corkIsFree ? 2 : 0))
+                        .position(x: proxy.size.width / 2, y: centerY)
+                        .zIndex(2)
+
+                    CorkPiece()
+                        .frame(width: 38, height: 42)
+                        .contentShape(Rectangle().inset(by: -10))
+                        .position(x: proxy.size.width / 2 + drift + (corkIsFree ? 18 : 0), y: mouthY + 18 + float + (isPressing ? 3 : 0) + corkPullOffset)
+                        .scaleEffect(corkPressScale)
+                        .rotationEffect(.degrees(corkIsFree ? 10 : corkPullRotation + tilt * 0.2))
+                        .opacity(phase == .openingLetter || phase == .opened || phase == .closing ? 0 : 1)
+                        .onTapGesture(perform: onCorkTap)
+                        .accessibilityLabel("Bottle cork").accessibilityHint("Double tap to open the bottle and reveal the letter")
+                        .accessibilityAddTraits(.isButton)
+                        .zIndex(3)
+
+                    if particlesVisible {
+                        ForEach(0..<5, id: \.self) { index in
+                            Circle().fill(index.isMultiple(of: 2) ? Color.white : EunoiaColor.gold)
+                                .frame(width: index.isMultiple(of: 2) ? 3 : 2)
+                                .position(x: proxy.size.width / 2 + CGFloat(index - 2) * 10, y: mouthY - 12 - CGFloat(index % 2) * 14)
+                                .opacity(letterIsEmerging ? 0.48 : 0)
+                                .zIndex(4)
+                        }
+                    }
+
+                    if phase == .idle || phase == .pressingCork {
+                        VStack(spacing: 4) {
+                            Image(systemName: "arrow.turn.left.up").font(.system(size: 11, weight: .light))
+                            Text("TAP THE CORK").font(.system(size: 11, weight: .semibold)).tracking(1.7)
+                        }
+                        .foregroundStyle(EunoiaColor.deepOcean)
+                        .opacity(hintPulse ? 0.72 : 0.38)
+                        .position(x: proxy.size.width / 2 + 73, y: mouthY - 8 - (hintPulse ? 3 : 0))
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct PremiumBottle: View {
+    let paperVisible: Bool
+    var body: some View {
+        ZStack(alignment: .top) {
+            if paperVisible {
+                RolledPaper().frame(width: 52, height: 126).rotationEffect(.degrees(-4)).offset(y: 94).opacity(0.66)
+            }
+            BottleSilhouette().fill(LinearGradient(colors: [Color(hex: 0xB8D8D3).opacity(0.76), Color(hex: 0x72AAA8).opacity(0.84)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            BottleSilhouette().stroke(Color.white.opacity(0.42), lineWidth: 2)
+            Capsule().fill(Color.white.opacity(0.27)).frame(width: 9, height: 148).blur(radius: 1).rotationEffect(.degrees(3)).offset(x: -37, y: 70)
+            Capsule().fill(EunoiaColor.deepOcean.opacity(0.08)).frame(width: 13, height: 172).blur(radius: 4).offset(x: 43, y: 72)
+            Ellipse().stroke(Color.white.opacity(0.29), lineWidth: 5).frame(width: 102, height: 19).offset(y: 241)
+            RoundedRectangle(cornerRadius: 8).stroke(EunoiaColor.deepOcean.opacity(0.11), lineWidth: 4).frame(width: 48, height: 61).offset(y: 3)
+        }.shadow(color: EunoiaColor.deepOcean.opacity(0.12), radius: 13, y: 9)
+    }
+}
+
+private struct BottleSilhouette: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let w = rect.width, h = rect.height
+        p.move(to: CGPoint(x: w * 0.38, y: 0)); p.addLine(to: CGPoint(x: w * 0.62, y: 0))
+        p.addLine(to: CGPoint(x: w * 0.64, y: h * 0.22))
+        p.addCurve(to: CGPoint(x: w * 0.86, y: h * 0.35), control1: CGPoint(x: w * 0.65, y: h * 0.29), control2: CGPoint(x: w * 0.83, y: h * 0.29))
+        p.addCurve(to: CGPoint(x: w * 0.92, y: h * 0.88), control1: CGPoint(x: w * 0.91, y: h * 0.50), control2: CGPoint(x: w * 0.92, y: h * 0.73))
+        p.addQuadCurve(to: CGPoint(x: w * 0.82, y: h), control: CGPoint(x: w * 0.92, y: h))
+        p.addLine(to: CGPoint(x: w * 0.18, y: h)); p.addQuadCurve(to: CGPoint(x: w * 0.08, y: h * 0.88), control: CGPoint(x: w * 0.08, y: h))
+        p.addCurve(to: CGPoint(x: w * 0.14, y: h * 0.35), control1: CGPoint(x: w * 0.08, y: h * 0.73), control2: CGPoint(x: w * 0.09, y: h * 0.50))
+        p.addCurve(to: CGPoint(x: w * 0.36, y: h * 0.22), control1: CGPoint(x: w * 0.17, y: h * 0.29), control2: CGPoint(x: w * 0.35, y: h * 0.29))
+        p.closeSubpath(); return p
+    }
+}
+
+private struct CorkPiece: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(LinearGradient(colors: [Color(hex: 0xC59A6C), Color(hex: 0xA9784E)], startPoint: .leading, endPoint: .trailing))
+            .overlay(VStack(spacing: 7) { ForEach(0..<3, id: \.self) { _ in Capsule().fill(EunoiaColor.wood.opacity(0.17)).frame(width: 20, height: 1) } })
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(EunoiaColor.wood.opacity(0.22)))
+            .shadow(color: EunoiaColor.deepOcean.opacity(0.18), radius: 4, y: 4)
+    }
+}
+
+private struct RolledPaper: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: 7).fill(LinearGradient(colors: [Color(hex: 0xFFF9E9), Color(hex: 0xF1E3C5)], startPoint: .leading, endPoint: .trailing))
+            .overlay(HStack { Rectangle().fill(EunoiaColor.warmSand.opacity(0.34)).frame(width: 4); Spacer(); Rectangle().fill(EunoiaColor.warmSand.opacity(0.24)).frame(width: 3) }.clipShape(RoundedRectangle(cornerRadius: 7)))
+    }
+}
+
+private struct FloatingLetter: View {
+    let phase: BottleShelfView.Phase
+    let close: () -> Void
+
+    private var open: Bool { phase == .openingLetter || phase == .opened || phase == .closing }
+    private var contentVisible: Bool { phase == .opened || phase == .closing }
+    private var closing: Bool { phase == .closing }
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            LinearGradient(colors: [Color(hex: 0xFFFBEF), Color(hex: 0xFAF1DD)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            VStack(spacing: 0) { ForEach(0..<15, id: \.self) { _ in Rectangle().fill(EunoiaColor.warmSand.opacity(0.055)).frame(height: 1); Spacer(minLength: 15) } }.padding(22)
+            ScrollView {
+                VStack(spacing: 18) {
+                    Text("FOUND WASHED ASHORE").font(.system(size: 10, weight: .semibold)).tracking(2).opacity(contentVisible ? 0.56 : 0)
+                    Text("A note from the sea").font(.story(28, weight: .regular)).foregroundStyle(EunoiaColor.ink).opacity(contentVisible ? 1 : 0)
+                    Image(systemName: "fossil.shell.fill").foregroundStyle(EunoiaColor.gold).opacity(contentVisible ? 1 : 0)
+                    Text("“Some days, moving forward means sailing.\n\nOther days, it means staying afloat.\n\nBoth count.”")
+                        .font(.story(19, weight: .regular)).lineSpacing(7).multilineTextAlignment(.center).foregroundStyle(EunoiaColor.ink)
+                        .opacity(contentVisible ? 1 : 0)
+                    Text("— carried gently across the water").font(.story(14, weight: .regular)).italic().foregroundStyle(EunoiaColor.secondaryText).opacity(contentVisible ? 1 : 0)
+                }.padding(.horizontal, 30).padding(.vertical, 38)
+            }
+            LinearGradient(colors: [Color(hex: 0xFFF7E4), Color(hex: 0xEAD8B9)], startPoint: .top, endPoint: .bottom)
+                .frame(height: open ? 0 : 54)
+                .overlay(alignment: .bottom) { Rectangle().fill(EunoiaColor.warmSand.opacity(0.22)).frame(height: 1) }
+                .rotation3DEffect(.degrees(open ? -88 : 0), axis: (x: 1, y: 0, z: 0), anchor: .top, perspective: 0.55)
+                .opacity(phase == .opened || closing ? 0 : 1)
+            Button(action: close) { Image(systemName: "xmark").font(.system(size: 15, weight: .medium)).frame(width: 40, height: 40).contentShape(Rectangle()) }
+                .foregroundStyle(EunoiaColor.ink.opacity(0.65)).padding(8).opacity(phase == .opened ? 1 : 0).disabled(phase != .opened)
+        }
+        .frame(width: open ? nil : 76, height: open ? nil : 166)
+        .clipShape(RoundedRectangle(cornerRadius: open ? 17 : 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: open ? 17 : 8).stroke(EunoiaColor.warmSand.opacity(0.38)))
+        .shadow(color: EunoiaColor.deepOcean.opacity(open ? 0.14 : 0.02), radius: open ? 28 : 3, y: open ? 18 : 2)
+        .rotationEffect(.degrees(open ? 0 : 2))
+        .scaleEffect(closing ? 0.985 : phase == .openingLetter ? 1.08 : phase == .opened ? 1 : 1)
+        .offset(y: closing ? 8 : 0)
+        .opacity(closing ? 0 : 1)
+        .accessibilityElement(children: phase == .opened ? .contain : .ignore)
     }
 }
 
