@@ -3,6 +3,7 @@ import SwiftUI
 struct OceanScene: View {
     var progress: Double
     var weather: SeaWeather?
+    var destination: String? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var moving = false
     @State private var boatBounce = false
@@ -22,7 +23,10 @@ struct OceanScene: View {
                     .animation(reduceMotion ? nil : .linear(duration: 24).repeatForever(autoreverses: true), value: moving)
                 ZStack(alignment: .bottom) {
                     Image(systemName: "mountain.2.fill").font(.system(size: 70)).foregroundStyle(EunoiaColor.deepOcean.opacity(0.32))
-                    Text("KYOTO").font(.system(size: 9, weight: .bold)).tracking(1.2).foregroundStyle(EunoiaColor.deepOcean.opacity(0.65)).offset(y: 15)
+                    if let destination {
+                        Text(destination.uppercased()).font(.caption2.bold()).tracking(1.2)
+                            .foregroundStyle(EunoiaColor.deepOcean).offset(y: 15)
+                    }
                 }.offset(x: proxy.size.width * 0.31, y: 12)
                 WaveShape(phase: moving ? 0.55 : 0).fill(EunoiaColor.mistBlue).frame(height: 112).offset(y: 78)
                     .animation(reduceMotion ? nil : .linear(duration: 5).repeatForever(autoreverses: true), value: moving)
@@ -42,7 +46,7 @@ struct OceanScene: View {
                     .rotationEffect(.degrees(boatBounce ? -2 : 1.5))
                     .offset(x: -proxy.size.width * 0.3 + CGFloat(progress) * proxy.size.width * 0.57, y: moving && !reduceMotion ? 42 : 48)
                     .onTapGesture { UIImpactFeedbackGenerator(style: .soft).impactOccurred(); withAnimation(.spring(response: 0.35, dampingFraction: 0.35)) { boatBounce.toggle() } }
-                    .animation(.spring(response: 0.8, dampingFraction: 0.72), value: progress)
+                    .animation(reduceMotion ? nil : .spring(response: 0.8, dampingFraction: 0.72), value: progress)
                     .animation(reduceMotion ? nil : .easeInOut(duration: 2.2).repeatForever(autoreverses: true), value: moving)
                 WaveShape(phase: moving ? -0.7 : 0.2).fill(EunoiaColor.oceanBlue.opacity(0.9)).frame(height: 88).offset(y: 116)
                     .animation(reduceMotion ? nil : .linear(duration: 6.5).repeatForever(autoreverses: true), value: moving)
@@ -51,7 +55,7 @@ struct OceanScene: View {
                 }
             }.clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
                 .contentShape(Rectangle()).simultaneousGesture(SpatialTapGesture().onEnded { value in
-                    guard value.location.y > proxy.size.height * 0.55 else { return }
+                    guard !reduceMotion, value.location.y > proxy.size.height * 0.55 else { return }
                     ripplePoint = value.location
                     withAnimation(.easeOut(duration: 0.8)) { ripplePoint = nil }
                 })

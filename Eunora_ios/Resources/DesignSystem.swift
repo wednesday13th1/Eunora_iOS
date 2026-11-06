@@ -1,12 +1,12 @@
 import SwiftUI
 
 enum EunoiaColor {
-    static let background = Color(hex: 0xF7F2E6), secondaryBackground = Color(hex: 0xEEF3EE)
-    static let deepOcean = Color(hex: 0x264E5B), oceanBlue = Color(hex: 0x35677A)
-    static let softSeaBlue = Color(hex: 0xAFCFE0), mistBlue = Color(hex: 0xDDEBEF)
-    static let warmSand = Color(hex: 0xD8C2A6), lightSand = Color(hex: 0xEFE1C8)
-    static let gold = Color(hex: 0xCDA64D), coral = Color(hex: 0xC98279), leaf = Color(hex: 0x4A9A60)
-    static let primaryText = Color(hex: 0x233F46), secondaryText = Color(hex: 0x6F7475), card = Color(hex: 0xFFFDF8)
+    static let background = Color(hex: 0xF5F0EA), secondaryBackground = Color(hex: 0xDFEAEB)
+    static let deepOcean = Color(hex: 0x2C4A5C), oceanBlue = Color(hex: 0x3A5A72)
+    static let softSeaBlue = Color(hex: 0x9AB3CA), mistBlue = Color(hex: 0xC6DDED)
+    static let warmSand = Color(hex: 0xE0D8D0), lightSand = Color(hex: 0xF8F0E4)
+    static let gold = Color(hex: 0xC49A42), coral = Color(hex: 0xC98279), leaf = Color(hex: 0x4A9A60)
+    static let primaryText = Color(hex: 0x2C4A5C), secondaryText = Color(hex: 0x5A7A92), card = Color(hex: 0xF8F3EE)
     static let dustyBlue = softSeaBlue, sky = mistBlue, foam = secondaryBackground, sand = warmSand
     static let cream = background, ink = primaryText, parchment = lightSand, wood = Color(hex: 0x785533)
 }
@@ -22,7 +22,13 @@ enum EunoiaRadius { static let control: CGFloat = 12; static let input: CGFloat 
 enum EunoiaMotion { static let micro = Animation.easeOut(duration: 0.18); static let normal = Animation.easeInOut(duration: 0.28); static let slow = Animation.easeInOut(duration: 0.6); static let collectible = Animation.spring(response: 0.4, dampingFraction: 0.72) }
 
 extension Font {
-    static func story(_ size: CGFloat, weight: Weight = .semibold) -> Font { .system(size: size, weight: weight, design: .serif) }
+    static func story(_ size: CGFloat, weight: Weight = .semibold) -> Font {
+        .custom(weight == .regular ? "Fraunces-Regular" : "Fraunces-SemiBold", size: size, relativeTo: .title)
+    }
+
+    static func voyageBody(_ size: CGFloat = 16, relativeTo style: TextStyle = .body) -> Font {
+        .custom("Nunito-Regular", size: size, relativeTo: style)
+    }
     static let eunoiaScreenTitle = Font.system(size: 42, weight: .bold, design: .rounded)
     static let eunoiaSectionTitle = Font.system(size: 28, weight: .bold, design: .rounded)
 }
@@ -38,7 +44,16 @@ struct EunoiaCard<Content: View>: View {
 }
 typealias SoftCard = EunoiaCard
 
-struct EditorialHeading: View { let text: String; var size: CGFloat = 32; var body: some View { Text(text).font(.story(size)).foregroundStyle(EunoiaColor.deepOcean) } }
+struct EditorialHeading: View {
+    let text: String
+    var size: CGFloat = 32
+
+    var body: some View {
+        Text(text)
+            .font(.story(size))
+            .foregroundStyle(EunoiaColor.deepOcean)
+    }
+}
 
 struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -55,4 +70,31 @@ struct ParchmentCard<Content: View>: View {
 struct EunoiaBackButton: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View { Button { dismiss() } label: { Image(systemName: "chevron.left").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44).foregroundStyle(EunoiaColor.deepOcean).background(EunoiaColor.card, in: Circle()).overlay(Circle().stroke(EunoiaColor.deepOcean.opacity(0.12))) }.accessibilityLabel("Back") }
+}
+
+enum EunoiaLayout {
+    static func horizontalPadding(for width: CGFloat) -> CGFloat {
+        if width < 375 { return 16 }
+        return width < 430 ? 20 : 24
+    }
+
+    static let readableWidth: CGFloat = 480
+}
+
+private struct ReadableContent: ViewModifier {
+    @State private var width: CGFloat = 375
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: EunoiaLayout.readableWidth)
+            .padding(.horizontal, EunoiaLayout.horizontalPadding(for: width))
+            .frame(maxWidth: .infinity)
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { width = $0 }
+    }
+}
+
+extension View {
+    func eunoiaReadableContent() -> some View {
+        modifier(ReadableContent())
+    }
 }

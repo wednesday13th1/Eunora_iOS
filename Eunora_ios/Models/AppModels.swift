@@ -38,4 +38,4 @@ enum SeaWeather: String, CaseIterable, Identifiable {
     }
 }
 
-extension Date { var eunoiaDayKey: String { formatted(.iso8601.year().month().day()) } }
+extension Date { var eunoiaDayKey: String { formatted(Date.ISO8601FormatStyle(timeZone: .autoupdatingCurrent).year().month().day()) } }

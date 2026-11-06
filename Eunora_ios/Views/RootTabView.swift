@@ -3,10 +3,10 @@ import SwiftUI
 enum EunoiaTab: String, CaseIterable {
     case home = "Home"
     case map = "Map"
-    case quest = "Quest"
+    case quest = "Quests"
     case letters = "Letters"
     case getHelp = "Get Help"
-    case cabin = "Cabin"
+    case cabin = "Sailor"
 
     var icon: String {
         switch self {
@@ -21,6 +21,8 @@ enum EunoiaTab: String, CaseIterable {
 }
 
 struct RootTabView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var textSize
     @State private var selection: EunoiaTab = .home
     @Namespace private var tabSelection
     var body: some View {
@@ -37,15 +39,21 @@ struct RootTabView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HStack(spacing: 2) {
                 ForEach(EunoiaTab.allCases, id: \.self) { tab in
-                    Button { withAnimation(.easeInOut(duration: 0.24)) { selection = tab } } label: {
-                        VStack(spacing: 3) { Image(systemName: tab.icon).font(.system(size: 21, weight: .medium)); Text(tab.rawValue).font(.system(size: 10, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.75) }
-                            .foregroundStyle(selection == tab ? EunoiaColor.deepOcean : EunoiaColor.deepOcean.opacity(0.68)).frame(maxWidth: .infinity, minHeight: 56)
+                    Button { withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.24)) { selection = tab } } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: tab.icon).font(.system(size: 21, weight: .medium))
+                            if !textSize.isAccessibilitySize {
+                                Text(tab.rawValue).font(.system(size: 10, weight: .semibold)).lineLimit(1)
+                            }
+                        }
+                            .foregroundStyle(selection == tab ? EunoiaColor.deepOcean : EunoiaColor.deepOcean.opacity(0.68)).frame(minWidth: 44, maxWidth: .infinity, minHeight: 56)
+                            .contentShape(Rectangle())
                             .background { if selection == tab { Capsule().fill(EunoiaColor.mistBlue.opacity(0.65)).matchedGeometryEffect(id: "selectedTab", in: tabSelection).padding(.horizontal, 2) } }
-                    }.buttonStyle(.plain).accessibilityAddTraits(selection == tab ? .isSelected : [])
+                    }.buttonStyle(.plain).accessibilityLabel(tab.rawValue).accessibilityAddTraits(selection == tab ? .isSelected : [])
                 }
             }
             .padding(.horizontal, 8).frame(height: 74).background(EunoiaColor.card.opacity(0.96), in: Capsule()).overlay(Capsule().stroke(EunoiaColor.deepOcean.opacity(0.10))).shadow(color: .black.opacity(0.05), radius: 10, y: -2)
-            .padding(.horizontal, 19).padding(.top, 8).padding(.bottom, 4)
+            .padding(.horizontal, 12).padding(.top, 8).padding(.bottom, 4)
         }
     }
 }

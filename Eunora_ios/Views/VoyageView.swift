@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 
 struct VoyageView: View {
-    @Environment(\.modelContext) private var context
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query private var profiles: [VoyageProfile]
     @Query private var allQuests: [DailyQuest]
@@ -27,7 +26,7 @@ struct VoyageView: View {
                     LazyVStack(alignment: .leading, spacing: EunoiaSpacing.lg) {
                         header
                         ZStack {
-                            OceanScene(progress: profile?.distance ?? 0.12, weather: weather) {
+                            OceanScene(progress: profile?.distance ?? 0.12, weather: weather, destination: profile?.destination) {
                                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                                 showBottle = true
                             }
@@ -39,8 +38,8 @@ struct VoyageView: View {
                         }.id("ocean")
                         voyageStatus
                         if weather == nil { checkInPrompt }
-                        questSection
-                    }.padding(.horizontal, EunoiaSpacing.screen).padding(.bottom, EunoiaSpacing.xl)
+                        QuestBoard(onComplete: showQuestReward)
+                    }.eunoiaReadableContent().padding(.bottom, EunoiaSpacing.xl)
                 }
                 .onChange(of: oceanSurge) { _, isSailing in
                     if isSailing { withAnimation(.spring(response: 0.75, dampingFraction: 0.82)) { reader.scrollTo("ocean", anchor: .center) } }
@@ -63,7 +62,6 @@ struct VoyageView: View {
                     .background(EunoiaColor.deepOcean, in: Capsule()).padding(.bottom, 92).transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .task { seedIfNeeded() }
         .navigationDestination(isPresented: $showBottle) { BottleView() }
     }
 
@@ -103,39 +101,14 @@ struct VoyageView: View {
         }.buttonStyle(.plain)
     }
 
-    private var questSection: some View {
-        VStack(alignment: .leading, spacing: EunoiaSpacing.md) {
-            EditorialHeading(text: "Captain’s Board", size: 32).padding(.top, EunoiaSpacing.xs)
-            ForEach(quests) { quest in QuestCard(quest: quest) { complete(quest) } onSkip: { withAnimation { quest.isSkipped = true } } }
-        }
-    }
-
-    private var bottleCard: some View {
-        SoftCard { HStack(spacing: 16) {
-            Image(systemName: "waterbottle.fill").font(.largeTitle).foregroundStyle(EunoiaColor.dustyBlue)
-            VStack(alignment: .leading) { Text("A bottle is drifting nearby").font(.headline).foregroundStyle(EunoiaColor.ink); Text("There may be a note inside.").font(.subheadline).foregroundStyle(.secondary) }
-            Spacer(); Image(systemName: "sparkles").foregroundStyle(EunoiaColor.gold)
-        }}
-    }
-
-    private func seedIfNeeded() {
-        if profiles.isEmpty { context.insert(VoyageProfile(destination: UserDefaults.standard.string(forKey: "selectedDestination") ?? "Kyoto")) }
-        if quests.isEmpty {
-            [("Take five slow breaths.", "wind"), ("Spend a few minutes somewhere peaceful.", "leaf.fill"), ("Reach out to someone you trust.", "envelope.fill")]
-                .forEach { context.insert(DailyQuest(title: $0.0, symbol: $0.1, dayKey: today)) }
-        }
-    }
-
-    private func complete(_ quest: DailyQuest) {
-        guard !quest.isCompleted else { return }
-        quest.isCompleted = true; quest.isSkipped = false; profile?.anchors += 1; profile?.distance = min(0.9, (profile?.distance ?? 0.12) + 0.07)
-        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+    private func showQuestReward() {
+        guard !reduceMotion else { return }
         anchorFlying = false
-        withAnimation(reduceMotion ? .easeInOut : .spring(response: 0.55, dampingFraction: 0.5)) { rewardAnchor = true }
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.5)) { rewardAnchor = true }
         rewardMessage = ["A small step still moves the ship.", "You sailed a little farther today.", "That was enough for now."].randomElement()
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(450))
-            withAnimation(reduceMotion ? .easeInOut(duration: 0.3) : .spring(response: 0.8, dampingFraction: 0.72)) { anchorFlying = true }
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.72)) { anchorFlying = true }
             try? await Task.sleep(for: .milliseconds(650)); UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             withAnimation { rewardAnchor = false; oceanSurge = true }
             try? await Task.sleep(for: .seconds(1.6)); withAnimation { oceanSurge = false; rewardMessage = nil }
@@ -147,20 +120,49 @@ struct VoyageView: View {
 
 struct QuestCard: View {
     let quest: DailyQuest; let onComplete: () -> Void; let onSkip: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var stamp = false
+    @Environment(\.dynamicTypeSize) private var textSize
+
     var body: some View {
-        ParchmentCard { HStack(spacing: 14) {
-            Image(systemName: quest.isCompleted ? "checkmark.circle.fill" : quest.symbol).font(.system(size: quest.isCompleted ? 44 : 28)).foregroundStyle(quest.isCompleted ? EunoiaColor.gold : EunoiaColor.deepOcean).frame(width: 48)
-            VStack(alignment: .leading, spacing: 5) {
-                Text(quest.title).font(.system(size: 18, weight: .semibold)).foregroundStyle(EunoiaColor.primaryText)
-                if !quest.isCompleted && !quest.isSkipped { Button("Not for me today", action: onSkip).font(.caption).foregroundStyle(.secondary) }
-                else if quest.isSkipped { Text("Resting here for today — no penalty.").font(.caption).foregroundStyle(.secondary) }
-                else { Text("Anchor earned").font(.system(size: 14, weight: .semibold)).foregroundStyle(EunoiaColor.gold) }
+        ParchmentCard {
+            let layout = textSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                : AnyLayout(HStackLayout(spacing: 14))
+            layout {
+                Image(systemName: quest.isCompleted ? "checkmark.circle.fill" : quest.symbol)
+                    .font(.title2)
+                    .foregroundStyle(EunoiaColor.deepOcean)
+                    .frame(width: 32)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(quest.title).font(.headline).foregroundStyle(EunoiaColor.primaryText)
+                    if quest.isSkipped {
+                        Text("Resting here for today — no penalty.").font(.caption).foregroundStyle(.secondary)
+                    } else if quest.isCompleted {
+                        Text("Anchor earned").font(.subheadline).foregroundStyle(EunoiaColor.deepOcean)
+                    } else {
+                        Button("Not for me today", action: onSkip)
+                            .font(.caption)
+                            .frame(minHeight: 44)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if !quest.isCompleted && !quest.isSkipped {
+                    Button {
+                        withAnimation(reduceMotion ? nil : EunoiaMotion.collectible) { stamp = true }
+                        onComplete()
+                    } label: {
+                        Image(systemName: "anchor.circle.fill")
+                            .font(.title)
+                            .scaleEffect(stamp ? 1 : 0.86)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("Stamp quest complete")
+                }
             }
-            Spacer()
-            if !quest.isSkipped { Button { withAnimation(.spring(response: 0.28, dampingFraction: 0.48)) { stamp = true }; onComplete() } label: {
-                Image(systemName: "anchor.circle.fill").font(.system(size: 38)).foregroundStyle(quest.isCompleted ? EunoiaColor.gold : EunoiaColor.deepOcean.opacity(0.45)).scaleEffect(stamp ? 1 : 0.86)
-            }.disabled(quest.isCompleted).accessibilityLabel(quest.isCompleted ? "Completed" : "Stamp quest complete") }
-        }}.frame(minHeight: 104).opacity(quest.isSkipped ? 0.62 : 1)
+        }
     }
 }

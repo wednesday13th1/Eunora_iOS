@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some View {
@@ -10,10 +11,11 @@ struct ContentView: View {
                 RootTabView()
             } else {
                 OnboardingView {
-                    withAnimation(.easeInOut(duration: 0.45)) { hasCompletedOnboarding = true }
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.45)) { hasCompletedOnboarding = true }
                 }
             }
         }
+        .font(.voyageBody())
         .tint(EunoiaColor.deepOcean)
     }
 }

@@ -6,8 +6,14 @@
 	objectVersion = 90;
 	objects = {
 
+/* Begin PBXBuildFile section */
+        A1000000000000000000000B = {isa = PBXBuildFile; fileRef = A1000000000000000000000A; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+        A1000000000000000000000A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Eunora_ios/Networking/EunoraAPI.swift; sourceTree = SOURCE_ROOT; };
 		000000000000000000000120 /* Eunora_ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Eunora_ios.app; sourceTree = BUILT_PRODUCTS_DIR; };
+        A10000000000000000000001 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = EunoraUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,6 +22,7 @@
 			path = Eunora_ios;
 			sourceTree = "<group>";
 		};
+        A10000000000000000000002 = {isa = PBXFileSystemSynchronizedRootGroup; path = EunoraUITests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31,6 +38,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000010 /* Eunora_ios */,
+				A10000000000000000000002,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -39,6 +47,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000120 /* Eunora_ios.app */,
+				A10000000000000000000001,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -64,7 +73,31 @@
 			productReference = 000000000000000000000120 /* Eunora_ios.app */;
 			productType = "com.apple.product-type.application";
 		};
+        A10000000000000000000003 = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = A10000000000000000000004;
+            buildPhases = (A10000000000000000000005);
+            dependencies = (A10000000000000000000007);
+            fileSystemSynchronizedGroups = (A10000000000000000000002);
+            name = EunoraUITests;
+            productName = EunoraUITests;
+            productReference = A10000000000000000000001;
+            productType = "com.apple.product-type.bundle.ui-testing";
+        };
 /* End PBXNativeTarget section */
+
+        A10000000000000000000006 = {
+            isa = PBXContainerItemProxy;
+            containerPortal = 000000000000000000000000;
+            proxyType = 1;
+            remoteGlobalIDString = 000000000000000100000000;
+            remoteInfo = Eunora_ios;
+        };
+        A10000000000000000000007 = {
+            isa = PBXTargetDependency;
+            target = 000000000000000100000000;
+            targetProxy = A10000000000000000000006;
+        };
 
 /* Begin PBXProject section */
 		000000000000000000000000 /* Project object */ = {
@@ -94,6 +127,7 @@
 			projectRoot = "";
 			targets = (
 				000000000000000100000000 /* Eunora_ios */,
+				A10000000000000000000003,
 			);
 		};
 /* End PBXProject section */
@@ -112,6 +146,7 @@
 			files = (
 			);
 		};
+        A10000000000000000000005 = {isa = PBXSourcesBuildPhase; files = (A1000000000000000000000B); };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -257,6 +292,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Configuration/Eunora-Info.plist";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -295,6 +331,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Configuration/Eunora-Info.plist";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -323,6 +360,32 @@
 			};
 			name = Release;
 		};
+        A10000000000000000000008 = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                GENERATE_INFOPLIST_FILE = YES;
+                PRODUCT_BUNDLE_IDENTIFIER = dev.eunora.uitests;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+                SWIFT_VERSION = 5.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+                TEST_TARGET_NAME = Eunora_ios;
+            };
+            name = Debug;
+        };
+        A10000000000000000000009 = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                GENERATE_INFOPLIST_FILE = YES;
+                PRODUCT_BUNDLE_IDENTIFIER = dev.eunora.uitests;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+                SWIFT_VERSION = 5.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+                TEST_TARGET_NAME = Eunora_ios;
+            };
+            name = Release;
+        };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -342,6 +405,12 @@
 			);
 			defaultConfigurationName = Release;
 		};
+        A10000000000000000000004 = {
+            isa = XCConfigurationList;
+            buildConfigurations = (A10000000000000000000008, A10000000000000000000009);
+            defaultConfigurationIsVisible = 0;
+            defaultConfigurationName = Release;
+        };
 /* End XCConfigurationList section */
 	};
 	rootObject = 000000000000000000000000 /* Project object */;
