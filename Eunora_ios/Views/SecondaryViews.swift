@@ -68,46 +68,6 @@ struct BottleView: View {
     private func pop() { UIImpactFeedbackGenerator(style: .rigid).impactOccurred(); withAnimation(.spring(response: 0.4, dampingFraction: 0.42)) { corkDrag = -150; stage = 2 } }
 }
 
-struct CabinView: View {
-    @Query private var profiles: [VoyageProfile]
-    @AppStorage("cabinHat") private var selectedHat = "sailorcap.fill"
-    let items = [("sailorcap.fill", 0), ("partyhat.fill", 3), ("crown.fill", 7)]
-    @AppStorage("cabinLampOn") private var lampOn = true
-    @State private var mapOpen = false
-    @State private var plantWiggle = false
-    @State private var bottlesLifted = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    var body: some View {
-        ZStack { StorybookBackground(); ScrollView { LazyVStack(alignment: .leading, spacing: EunoiaSpacing.xl) {
-            VStack(alignment: .leading, spacing: EunoiaSpacing.lg) { Text("Sailor").font(.eunoiaScreenTitle).foregroundStyle(EunoiaColor.primaryText); Text("Your quiet place at sea").font(.story(30)).foregroundStyle(EunoiaColor.deepOcean).frame(maxWidth: .infinity) }
-            NavigationLink {
-                SettingsView()
-            } label: {
-                Label("Settings", systemImage: "gearshape")
-                    .frame(minHeight: 44)
-            }
-            GeometryReader { proxy in
-                let w = proxy.size.width
-                ZStack {
-                    RoundedRectangle(cornerRadius: EunoiaRadius.hero).fill(EunoiaColor.warmSand.opacity(lampOn ? 0.62 : 0.42))
-                    Rectangle().fill(EunoiaColor.wood.opacity(0.18)).frame(height: w * 0.29).frame(maxHeight: .infinity, alignment: .bottom).clipShape(RoundedRectangle(cornerRadius: EunoiaRadius.hero))
-                    Circle().fill(EunoiaColor.mistBlue).overlay(WaveShape(phase: plantWiggle ? 0.5 : 0).fill(EunoiaColor.oceanBlue.opacity(0.7)).offset(y: 35)).overlay(Circle().stroke(EunoiaColor.deepOcean, lineWidth: 8)).frame(width: w * 0.31).offset(x: w * 0.27, y: -w * 0.22)
-                    Button { withAnimation(EunoiaMotion.collectible) { mapOpen.toggle() } } label: { Image(systemName: "map.fill").font(.system(size: w * 0.14)).foregroundStyle(EunoiaColor.lightSand, EunoiaColor.coral).rotationEffect(.degrees(mapOpen ? 0 : -8)) }.offset(x: -w * 0.31, y: -w * 0.25)
-                    VStack(spacing: 0) { Image(systemName: selectedHat).font(.system(size: 36)).foregroundStyle(EunoiaColor.gold); Image(systemName: "person.crop.circle.fill").font(.system(size: 82)).foregroundStyle(EunoiaColor.softSeaBlue) }.offset(y: 12)
-                    Image(systemName: "leaf.fill").font(.system(size: 58)).foregroundStyle(EunoiaColor.leaf).rotationEffect(.degrees(plantWiggle ? 7 : -3)).offset(x: -w * 0.33, y: w * 0.31).onTapGesture { withAnimation(EunoiaMotion.collectible) { plantWiggle.toggle() } }
-                    Image(systemName: "lamp.table.fill").font(.system(size: 55)).foregroundStyle(lampOn ? EunoiaColor.gold : EunoiaColor.secondaryText).shadow(color: lampOn ? EunoiaColor.gold.opacity(0.5) : .clear, radius: 20).offset(x: w * 0.34, y: w * 0.31).onTapGesture { withAnimation(EunoiaMotion.normal) { lampOn.toggle() } }
-                    NavigationLink(destination: BottleShelfView()) { HStack(spacing: 8) { ForEach(0..<3, id: \.self) { _ in BottleGlyph().frame(width: 26, height: 55) } }.padding(.horizontal, 14).padding(.top, 8).background(EunoiaColor.wood.opacity(0.7), in: RoundedRectangle(cornerRadius: 8)) }
-                        .offset(y: w * 0.34 - (bottlesLifted ? 9 : 0)).shadow(color: bottlesLifted ? EunoiaColor.gold.opacity(0.45) : .clear, radius: 12).simultaneousGesture(TapGesture().onEnded { withAnimation(EunoiaMotion.collectible) { bottlesLifted = true } })
-                }.onAppear { guard !reduceMotion else { return }; withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) { plantWiggle = true } }
-            }.aspectRatio(1, contentMode: .fit)
-            VStack(alignment: .leading, spacing: EunoiaSpacing.md) { Text("Wardrobe").font(.eunoiaSectionTitle).foregroundStyle(EunoiaColor.primaryText); LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) { ForEach(items, id: \.0) { item in
-                let unlocked = (profiles.first?.anchors ?? 0) >= item.1
-                Button { if unlocked { withAnimation(EunoiaMotion.collectible) { selectedHat = item.0 } } } label: { VStack(spacing: 8) { Image(systemName: unlocked ? item.0 : "lock.fill").font(.title2); Text(item.1 == 0 ? "Aboard" : "\(item.1) ⚓").font(.caption.weight(.semibold)); if selectedHat == item.0 { Text("Equipped").font(.system(size: 10, weight: .bold)).padding(.horizontal, 6).padding(.vertical, 2).background(EunoiaColor.gold.opacity(0.2), in: Capsule()) } }.frame(maxWidth: .infinity, minHeight: 106).background(EunoiaColor.card, in: RoundedRectangle(cornerRadius: EunoiaRadius.card)).overlay(RoundedRectangle(cornerRadius: EunoiaRadius.card).stroke(selectedHat == item.0 ? EunoiaColor.gold : .clear, lineWidth: 1.5)) }.foregroundStyle(unlocked ? EunoiaColor.deepOcean : EunoiaColor.secondaryText).opacity(unlocked ? 1 : 0.45).disabled(!unlocked)
-            } } }
-        }.eunoiaReadableContent().padding(.top, EunoiaSpacing.md) } }.toolbar(.hidden, for: .navigationBar)
-    }
-}
-
 struct YouView: View {
     var body: some View {
         ZStack { StorybookBackground(); ScrollView { LazyVStack(alignment: .leading, spacing: EunoiaSpacing.xl) {
@@ -142,6 +102,7 @@ struct BottleShelfView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: Phase = .idle
     @State private var letter = WebLetter.all[0]
+    @Environment(\.scenePhase) private var scenePhase
     @State private var sceneStarted = false
     @State private var hintPulse = false
     @State private var particlesVisible = false
@@ -185,7 +146,7 @@ struct BottleShelfView: View {
                         BottleDiscoveryScene(
                             glass: letter.glass,
                             phase: phase,
-                            animateIdle: sceneStarted && !reduceMotion,
+                            animateIdle: sceneStarted && !reduceMotion && scenePhase == .active && !showsPaper,
                             hintPulse: hintPulse,
                             particlesVisible: particlesVisible,
                             corkPressScale: corkPressScale,
@@ -502,7 +463,7 @@ private struct FloatingLetter: View {
                 .rotation3DEffect(.degrees(open ? -88 : 0), axis: (x: 1, y: 0, z: 0), anchor: .top, perspective: 0.55)
                 .opacity(phase == .opened || closing ? 0 : 1)
             Button(action: close) { Image(systemName: "xmark").font(.system(size: 15, weight: .medium)).frame(width: 44, height: 44).contentShape(Rectangle()) }
-                .foregroundStyle(EunoiaColor.ink.opacity(0.65)).padding(8).opacity(phase == .opened ? 1 : 0).disabled(phase != .opened).accessibilityLabel("Close letter")
+                .foregroundStyle(EunoiaColor.ink.opacity(0.65)).padding(8).opacity(phase == .opened ? 1 : 0).disabled(phase != .opened).accessibilityHidden(phase != .opened).accessibilityLabel("Close letter")
         }
         .frame(width: open ? nil : 76, height: open ? nil : 166)
         .clipShape(RoundedRectangle(cornerRadius: open ? 17 : 8, style: .continuous))

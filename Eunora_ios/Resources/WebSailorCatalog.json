@@ -1,0 +1,195 @@
+{
+  "hat": [
+    {
+      "id": "sailor",
+      "label": "Sailor Cap",
+      "cost": 0
+    },
+    {
+      "id": "beanie",
+      "label": "Cozy Beanie",
+      "cost": 0
+    },
+    {
+      "id": "flower",
+      "label": "Flower Crown",
+      "cost": 60
+    },
+    {
+      "id": "captain",
+      "label": "Captain's Hat",
+      "cost": 130
+    }
+  ],
+  "jacket": [
+    {
+      "id": "stripes",
+      "label": "Sailor Stripes",
+      "cost": 0,
+      "color": "#9AB3CA"
+    },
+    {
+      "id": "pink",
+      "label": "Pink Hoodie",
+      "cost": 0,
+      "color": "#f0b4b4"
+    },
+    {
+      "id": "mint",
+      "label": "Mint Jacket",
+      "cost": 70,
+      "color": "#a0d4b4"
+    },
+    {
+      "id": "navy",
+      "label": "Navy Coat",
+      "cost": 120,
+      "color": "#3a5a72"
+    }
+  ],
+  "accessory": [
+    {
+      "id": "none",
+      "label": "None",
+      "cost": 0
+    },
+    {
+      "id": "telescope",
+      "label": "Telescope",
+      "cost": 0
+    },
+    {
+      "id": "compass",
+      "label": "Compass",
+      "cost": 50
+    },
+    {
+      "id": "necklace",
+      "label": "Anchor Pendant",
+      "cost": 75
+    }
+  ],
+  "aura": [
+    {
+      "id": "none",
+      "label": "None",
+      "cost": 0,
+      "color": "transparent"
+    },
+    {
+      "id": "sparkle",
+      "label": "Sparkle ✦",
+      "cost": 0,
+      "color": "#f0d080"
+    },
+    {
+      "id": "ocean",
+      "label": "Ocean Glow",
+      "cost": 85,
+      "color": "#9AB3CA"
+    },
+    {
+      "id": "cozy",
+      "label": "Warm Glow",
+      "cost": 100,
+      "color": "#f0c080"
+    }
+  ],
+  "companion": [
+    {
+      "id": "none",
+      "label": "None",
+      "cost": 0
+    },
+    {
+      "id": "kitten",
+      "label": "Sea Kitten",
+      "cost": 60,
+      "icon": "Cat",
+      "width": 50,
+      "height": 25
+    },
+    {
+      "id": "corgi",
+      "label": "Corgi",
+      "cost": 80,
+      "icon": "Dog",
+      "width": 50,
+      "height": 30
+    },
+    {
+      "id": "turtle",
+      "label": "Sea Turtle",
+      "cost": 100,
+      "icon": "Turtle",
+      "width": 35,
+      "height": 20
+    },
+    {
+      "id": "octopus",
+      "label": "Baby Octopus",
+      "cost": 120,
+      "icon": "Octopus",
+      "width": 30,
+      "height": 35
+    }
+  ],
+  "decor": [
+    {
+      "id": "couch",
+      "label": "Comfy Couch",
+      "cost": 0,
+      "icon": "Couch",
+      "width": 20,
+      "height": 20
+    },
+    {
+      "id": "shelf",
+      "label": "Bookshelf",
+      "cost": 0,
+      "icon": "BookStack",
+      "width": 20,
+      "height": 20
+    },
+    {
+      "id": "teaset",
+      "label": "Tea Set",
+      "cost": 0,
+      "icon": "Tea",
+      "width": 40,
+      "height": 30
+    },
+    {
+      "id": "lights",
+      "label": "String Lights",
+      "cost": 45,
+      "icon": "Lights",
+      "width": 20,
+      "height": 20
+    },
+    {
+      "id": "map",
+      "label": "Map Poster",
+      "cost": 55,
+      "icon": "Map",
+      "width": 30,
+      "height": 15
+    },
+    {
+      "id": "plant",
+      "label": "Potted Plant",
+      "cost": 40,
+      "icon": "Plant",
+      "width": 35,
+      "height": 20
+    },
+    {
+      "id": "lantern",
+      "label": "Ship Lantern",
+      "cost": 65,
+      "icon": "Lantern",
+      "width": 40,
+      "height": 20
+    }
+  ]
+}

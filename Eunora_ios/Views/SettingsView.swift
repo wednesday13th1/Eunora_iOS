@@ -10,12 +10,12 @@ struct SettingsView: View {
     @State private var busy = false
     @State private var message: String?
 
-    private let api = EunoraAPI.configured
+    private static let api = EunoraAPI.configured
 
     var body: some View {
         Form {
             Section("Account protection") {
-                if let api {
+                if let api = Self.api {
                     if session != nil {
                         Text(session?.needsRefresh == true ? "Reconnect to verify your session." : "You’re signed in.")
                         Button("Log out", role: .destructive) { Task { await logout(api) } }
@@ -62,7 +62,7 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         .task(id: scenePhase) {
-            if let api, scenePhase == .active { await restore(api) }
+            if let api = Self.api, scenePhase == .active { await restore(api) }
         }
     }
 

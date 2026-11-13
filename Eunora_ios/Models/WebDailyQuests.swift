@@ -54,6 +54,10 @@ enum WebDailyQuests {
 
     static let xpByTitle = Dictionary(uniqueKeysWithValues: pool.flatMap(\.quests).map { ($0.title, $0.xp) })
 
+    static func totalXP(for records: [DailyQuest]) -> Int {
+        records.filter(\.isCompleted).reduce(0) { $0 + (xpByTitle[$1.title] ?? 0) }
+    }
+
     static func rank(for xp: Int) -> String {
         switch xp {
         case ..<50: "Deckhand"

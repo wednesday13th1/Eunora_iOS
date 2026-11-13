@@ -65,7 +65,7 @@ struct VoyageMapView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: EunoiaSpacing.md) {
+            LazyVStack(alignment: .leading, spacing: EunoiaSpacing.md) {
                 EditorialHeading(text: "Chart your course")
                     .accessibilityAddTraits(.isHeader)
                 Text("A destination is a direction, never a deadline.")

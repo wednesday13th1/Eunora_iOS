@@ -33,7 +33,13 @@ struct EunoraAPI {
     private struct ErrorReply: Decodable { let error: String }
 
     let baseURL: URL
-    var transport: URLSession = URLSession(configuration: .ephemeral)
+    private static let accountTransport = URLSession(configuration: .ephemeral)
+    var transport: URLSession
+
+    init(baseURL: URL, transport: URLSession = Self.accountTransport) {
+        self.baseURL = baseURL
+        self.transport = transport
+    }
 
     static var configured: Self? {
         guard let value = Bundle.main.object(forInfoDictionaryKey: "EunoraAPIBaseURL") as? String,

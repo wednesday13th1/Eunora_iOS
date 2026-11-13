@@ -1,3 +1,4 @@
+import Combine
 import SwiftData
 import SwiftUI
 
@@ -17,23 +18,20 @@ struct QuestBoard: View {
     @Environment(\.modelContext) private var context
     @Query private var profiles: [VoyageProfile]
     @Query private var records: [DailyQuest]
-    @State private var date = Date.now
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var day = Date.now.eunoiaDayKey
+    @State private var categories = WebDailyQuests.categories(on: .now)
     @State private var saveFailed = false
     var onComplete: () -> Void = {}
 
-    private var categories: [WebDailyQuests.Category] { WebDailyQuests.categories(on: date) }
-    private var today: String { date.eunoiaDayKey }
-    private var currentRecords: [DailyQuest] { records.filter { $0.dayKey == today } }
-    private var totalXP: Int {
-        records.filter(\.isCompleted).reduce(0) { $0 + (WebDailyQuests.xpByTitle[$1.title] ?? 0) }
-    }
-    private var legacyRecords: [DailyQuest] {
-        let currentTitles = Set(categories.flatMap(\.quests).map(\.title))
-        return currentRecords.filter { !currentTitles.contains($0.title) }
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: EunoiaSpacing.md) {
+        let currentRecords = records.filter { $0.dayKey == day }
+        let recordsByTitle = Dictionary(currentRecords.map { ($0.title, $0) }, uniquingKeysWith: { first, _ in first })
+        let titles = Set(categories.flatMap(\.quests).map(\.title))
+        let legacyRecords = currentRecords.filter { !titles.contains($0.title) }
+        let totalXP = WebDailyQuests.totalXP(for: records)
+
+        LazyVStack(alignment: .leading, spacing: EunoiaSpacing.md) {
             EditorialHeading(text: "Daily Voyage Tasks").accessibilityAddTraits(.isHeader)
             Text("Stamp one small action when it feels right.")
                 .foregroundStyle(EunoiaColor.secondaryText)
@@ -53,7 +51,7 @@ struct QuestBoard: View {
                     .foregroundStyle(EunoiaColor.deepOcean)
                     .accessibilityAddTraits(.isHeader)
                 ForEach(category.quests, id: \.id) { quest in
-                    if let record = currentRecords.first(where: { $0.title == quest.title }) {
+                    if let record = recordsByTitle[quest.title] {
                         card(record)
                     }
                 }
@@ -71,14 +69,22 @@ struct QuestBoard: View {
         } message: {
             Text("You can try again when you’re ready.")
         }
-        .task {
-            while !Task.isCancelled {
-                date = .now
-                seed()
-                do { try await Task.sleep(for: .seconds(30)) }
-                catch { return }
-            }
+        .task { refreshDay() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { refreshDay() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in refreshDay() }
+        .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in refreshDay() }
+    }
+
+    private func refreshDay() {
+        let now = Date.now
+        let key = now.eunoiaDayKey
+        if key != day {
+            day = key
+            categories = WebDailyQuests.categories(on: now)
+        }
+        seed(day: key)
     }
 
     private func card(_ quest: DailyQuest) -> some View {
@@ -107,8 +113,7 @@ struct QuestBoard: View {
         }
     }
 
-    private func seed() {
-        let day = today
+    private func seed(day: String) {
         let descriptor = FetchDescriptor<DailyQuest>(predicate: #Predicate { $0.dayKey == day })
         guard let existing = try? context.fetch(descriptor),
               let existingProfiles = try? context.fetch(FetchDescriptor<VoyageProfile>()) else { return }
