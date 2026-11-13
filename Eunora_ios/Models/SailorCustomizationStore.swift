@@ -9,7 +9,6 @@ final class SailorCustomizationStore {
 
     private(set) var avatar: WebSailor.Avatar
     private(set) var placedItems: [String]
-    private let writer = DispatchQueue(label: "Eunora.SailorCustomization", qos: .utility)
 
     private init() {
         let data = UserDefaults.standard.data(forKey: Self.key)
@@ -25,11 +24,9 @@ final class SailorCustomizationStore {
         if next.avatar != avatar { avatar = next.avatar }
         if next.placedItems != placedItems { placedItems = next.placedItems }
 
-        // Keep writes ordered even when the view closes or selections arrive in quick succession.
-        let key = Self.key
-        writer.async {
-            guard let data = try? JSONEncoder().encode(next) else { return }
-            UserDefaults.standard.set(data, forKey: key)
+        // Publish the small snapshot immediately. UserDefaults manages the disk write.
+        if let data = try? JSONEncoder().encode(next) {
+            UserDefaults.standard.set(data, forKey: Self.key)
         }
     }
 }
